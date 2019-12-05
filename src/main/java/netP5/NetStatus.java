@@ -25,31 +25,41 @@
 
 package netP5;
 
-public interface NetP5 {
-	
-  String VERSION = "0.9.9";
-  
-  boolean DEBUG = true;
-  
-  /**
-   * @related setNetworkProtocol ( )
-   */
-  public final static int UDP = 0;
-
-  /**
-   * @related setNetworkProtocol ( )
-   */
-  public final static int MULTICAST = 1;
+/**
+ * @author andreas schlegel
+ */
+public class NetStatus {
 
 
-  /**
-   * @related setNetworkProtocol ( )
-   */
-  public final static int TCP = 2;
-  /**
-   * TODO
-   * authentification in AbstractTcpServer and  AbstractUdpServer. 
-   * TcpServer.authentificationRequired(true/false); 
-   * UdpServer.authentificationRequired(true/false);
-   */
+  public static int ERROR = -1;
+
+  public static int DEFAULT = 0;
+
+  public static int CONNECTION_CLOSED = 1;
+
+  public static int CONNECTION_REFUSED = 2;
+
+  public static int CONNECTION_TERMINATED = 4;
+
+  public static int CONNECTION_FAILED = 8;
+
+  public static int SERVER_CLOSED = 16;
+
+  public static int CLIENT_CLOSED = 32;
+
+  public static int SEND_FAILED = 64;
+
+  private int _myIndex = DEFAULT;
+
+
+  public NetStatus(int theIndex) {
+    _myIndex = theIndex;
+  }
+
+
+
+  public int id() {
+    return _myIndex;
+  }
+
 }

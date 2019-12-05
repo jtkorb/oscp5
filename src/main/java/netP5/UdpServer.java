@@ -1,8 +1,8 @@
 /**
  * A network library for processing which supports UDP, TCP and Multicast.
- * 
- * ##copyright##
- * 
+ *
+ * (c) 2004-2012
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -10,184 +10,142 @@
  * 
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  * 
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place, Suite 330,
- * Boston, MA 02111-1307 USA
+ * Boston, MA  02111-1307  USA
  * 
- * @author ##author##
- * @modified ##date##
- * @version ##version##
+ * @author		Andreas Schlegel http://www.sojamo.de
+ * @modified	12/23/2012
+ * @version		0.9.9
  */
 
 package netP5;
 
-import java.io.IOException;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.spi.SelectorProvider;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Observable;
-import java.util.logging.Logger;
+import java.net.DatagramPacket;
+import java.util.Vector;
 
-public final class UdpServer extends Observable implements Transmitter {
 
-	final static Logger LOGGER = Logger.getLogger( UdpServer.class.getName( ) );
+/**
+ *
+ * @author andreas schlegel
+ *
+ */
+public class UdpServer extends AbstractUdpServer implements UdpPacketListener {
 
-	private final InternalServer server;
+    protected Object _myParent;
 
-	public UdpServer( final int thePort , final int theDatagramSize ) {
-		this( null , thePort , theDatagramSize );
+    protected NetPlug _myNetPlug;
+
+    /**
+     * new UDP server.
+     * by default the buffersize of a udp packet is 1536 bytes. you can set
+     * your own individual buffersize with the third parameter int in the constructor.
+     * @param theObject Object
+     * @param thePort int
+     * @param theBufferSize int
+     */
+    public UdpServer(
+    		final Object theObject,
+    		final int thePort,
+    		final int theBufferSize) {
+        super(null, thePort, theBufferSize);
+        _myParent = theObject;
+        _myListener = this;
+        _myNetPlug = new NetPlug(_myParent);
+        start();
+    }
+
+
+
+    public UdpServer(
+    		final Object theObject,
+    		final int thePort) {
+        super(null, thePort, 1536);
+        _myParent = theObject;
+        _myListener = this;
+        _myNetPlug = new NetPlug(_myParent);
+        start();
+    }
+
+
+    /**
+     * @invisible
+     * @param theListener
+     * @param thePort
+     * @param theBufferSize
+     */
+    public UdpServer(
+    		final UdpPacketListener theListener,
+    		final int thePort,
+    		final int theBufferSize) {
+        super(theListener, thePort, theBufferSize);
+    }
+
+    
+    /**
+     * @invisible
+     * @param theListener
+     * @param theAddress
+     * @param thePort
+     * @param theBufferSize
+     */
+    protected UdpServer(
+    		final UdpPacketListener theListener,
+    		final String theAddress,
+    		final int thePort,
+    		final int theBufferSize) {
+        super(theListener, theAddress, thePort, theBufferSize);
+    }
+
+
+    /**
+     * @invisible
+     * @param thePacket DatagramPacket
+     * @param thePort int
+     */
+    public void process(DatagramPacket thePacket, int thePort) {
+        _myNetPlug.process(thePacket,thePort);
+    }
+    
+    
+	/**
+	 * add a listener to the udp server. each incoming packet will be forwarded
+	 * to the listener.
+	 * @param theListener
+	 * @related NetListener
+	 */
+	public void addListener(NetListener theListener) {
+		_myNetPlug.addListener(theListener);
 	}
-
-	public UdpServer( final String theHost , final int thePort , final int theDatagramSize ) {
-
-		/* This is a very basic UDP server listening for incoming message and forwarding the message to all registered
-		 * observers. This server can be used for simple networking operations with a small amount of clients. For
-		 * larger scale network operations make use of more sophisticated services such as for example netty.io, apache
-		 * mina - for NAT traversal consider JSTUN - or use a messaging middleware such as rabbitMQ or the messaging
-		 * library zeroMQ */
-
-		server = new InternalServer( theHost , thePort , theDatagramSize );
+	
+	/**
+	 * 
+	 * @param theListener
+	 * @related NetListener
+	 */
+	public void removeListener(NetListener theListener) {
+		_myNetPlug.removeListener(theListener);
 	}
-
-	public boolean close( ) {
-		try {
-			server.thread.interrupt( );
-			server.channel.close( );
-			return true;
-		} catch ( IOException e ) {
-			e.printStackTrace( );
-		}
-		return false;
+	
+	/**
+	 * 
+	 * @param theIndex
+	 * @related NetListener
+	 * @return
+	 */
+	public NetListener getListener(int theIndex) {
+		return _myNetPlug.getListener(theIndex);
 	}
-
-	public boolean send( byte[] theContent ) {
-		/* TODO send to all clients */
-		return false;
+	
+	/**
+	 * @related NetListener
+	 * @return
+	 */
+	public Vector getListeners() {
+		return _myNetPlug.getListeners();
 	}
-
-	public boolean send( byte[] theContent , Collection< InetSocketAddress > theAddress ) {
-		InetSocketAddress[] o = new InetSocketAddress[ theAddress.size( ) ];
-		return send( theContent , theAddress.toArray( o ) );
-	}
-
-	public boolean send( byte[] theContent , String theHost , int thePort ) {
-		return send( theContent , new InetSocketAddress( theHost , thePort ) );
-	}
-
-	public boolean send( byte[] theContent , SocketAddress ... theAddress ) {
-		try {
-
-			ByteBuffer buffer = ByteBuffer.allocate( theContent.length );
-			buffer.clear( );
-			buffer.put( theContent );
-			buffer.flip( );
-			for ( SocketAddress addr : theAddress ) {
-				server.channel.send( buffer , addr );
-			}
-			return true;
-		} catch ( Exception e ) {
-			System.err.println( "Could not send datagram " + e );
-		}
-		return false;
-	}
-
-	class InternalServer implements Runnable {
-
-		private DatagramChannel channel;
-		private final int port;
-		private final int size;
-		private final Thread thread;
-		private final String host;
-
-		InternalServer( String theHost , int thePort , int theDatagramSize ) {
-			host = theHost;
-			port = thePort;
-			size = theDatagramSize;
-			thread = ( new Thread( this ) );
-			thread.start( );
-		}
-
-		public void run( ) {
-
-			/* Create a selector to multiplex client connections. */
-
-			try {
-				Selector selector = SelectorProvider.provider( ).openSelector( );
-				channel = DatagramChannel.open( );
-				channel.configureBlocking( false );
-				InetSocketAddress isa = ( host == null ) ? new InetSocketAddress( port ) : new InetSocketAddress( host , port );
-				channel.socket( ).bind( isa );
-				channel.register( selector , SelectionKey.OP_READ , ByteBuffer.allocate( size ) );
-				LOGGER.info( "starting server, listening on port " + port + " (" + isa.getAddress( ).getHostAddress( ) + ":" + isa.getPort( ) + " " + isa.getAddress( ).getLocalHost( )+ ":" + isa.getPort( ) + ")" );
-				
-				/* Let's listen for incoming messages */
-				while ( !Thread.currentThread( ).isInterrupted( ) ) {
-					/* Wait for task or until timeout expires */
-					int timeout = 1000;
-					if ( selector.select( timeout ) == 0 ) {
-						/* just checking if we are still alive. */
-						continue;
-					}
-
-					/* Get iterator on set of keys with I/O to process */
-
-					Iterator< SelectionKey > keyIter = selector.selectedKeys( ).iterator( );
-					while ( keyIter.hasNext( ) ) {
-						SelectionKey key = keyIter.next( ); /* Key is bit mask */
-						/* Client socket channel has pending data? */
-						if ( key.isReadable( ) ) {
-
-							DatagramChannel channel0 = ( DatagramChannel ) key.channel( );
-							ByteBuffer buffer = ( ( ByteBuffer ) key.attachment( ) );
-							buffer.clear( ); /* Prepare buffer for receiving */
-							SocketAddress client = channel0.receive( buffer );
-							InetSocketAddress addr = ( InetSocketAddress ) client;
-
-							if ( client != null ) { /* handle received message */
-								buffer.flip( );
-								final Map< String , Object > m = new HashMap< String , Object >( );
-								final byte[] data = new byte[ buffer.remaining( ) ];
-								buffer.get( data );
-								DatagramSocket socket = channel0.socket( );
-								m.put( "socket-type" , "udp" );
-								m.put( "socket-ref" , channel0 );
-								m.put( "received-at" , System.currentTimeMillis( ) );
-								m.put( "socket-address" , addr.getAddress( ).getHostAddress( ) );
-								m.put( "socket-port" , addr.getPort( ) );
-								m.put( "local-port" , socket.getLocalPort( ) );
-								m.put( "data" , data );
-								setChanged( );
-								notifyObservers( m );
-							}
-
-						}
-
-						keyIter.remove( );
-
-					}
-				}
-			} catch ( IOException e ) {
-				LOGGER.info( "Couldn't start UDP server on port " + port + " " + e +" Is there another application using the same port?");
-				// e.printStackTrace( );
-			}
-			LOGGER.info( "thread interrupted and closed." );
-		}
-
-	}
-
-	/* TODO consider to use java.util.concurrent.Executor here instead of Thread. */
-
 }

@@ -1,7 +1,7 @@
 /**
  * A network library for processing which supports UDP, TCP and Multicast.
  *
- * ##copyright##
+ * (c) 2004-2012
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,26 +18,17 @@
  * Free Software Foundation, Inc., 59 Temple Place, Suite 330,
  * Boston, MA  02111-1307  USA
  * 
- * @author		##author##
- * @modified	##date##
- * @version		##version##
+ * @author		Andreas Schlegel http://www.sojamo.de
+ * @modified	12/23/2012
+ * @version		0.9.9
  */
 
 package netP5;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.Collection;
-
-public interface Transmitter {
-
-	public boolean send( byte[] theContent );
-
-	public boolean send( byte[] theContent , Collection< InetSocketAddress > theAddress );
-
-	public boolean send( byte[] theContent , String theHost , int thePort );
-
-	public boolean send( byte[] theContent , SocketAddress ... theAddress );
-
-	public boolean close( );
+public interface NetListener {
+	
+	public void netEvent(NetMessage theNetMessage);
+	
+	public void netStatus(NetStatus theStatus);
+	
 }

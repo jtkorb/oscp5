@@ -1,5 +1,5 @@
 /**
- * An OSC (Open Sound Control) library for processing.
+ * A network library for processing which supports UDP, TCP and Multicast.
  *
  * (c) 2004-2012
  *
@@ -23,15 +23,16 @@
  * @version		0.9.9
  */
 
-package oscP5;
+package netP5;
 
 /**
- * 
  * @invisible
  */
-public interface OscEventListener {
+public interface TcpPacketListener {
 
-	public void oscEvent(OscMessage theMessage);
+	public void process(TcpPacket theTcpPacket, int thePort);
 
-	public void oscStatus(OscStatus theStatus);
+	public void status(int theStatus);
+
+	public void remove(AbstractTcpClient theClient);
 }

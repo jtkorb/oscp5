@@ -1,8 +1,8 @@
 /**
  * An OSC (Open Sound Control) library for processing.
- * 
- * ##copyright##
- * 
+ *
+ * (c) 2004-2012
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -10,197 +10,310 @@
  * 
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  * 
  * You should have received a copy of the GNU Lesser General
  * Public License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place, Suite 330,
- * Boston, MA 02111-1307 USA
+ * Boston, MA  02111-1307  USA
  * 
- * @author ##author##
- * @modified ##date##
- * @version ##version##
+ * @author		Andreas Schlegel http://www.sojamo.de
+ * @modified	12/23/2012
+ * @version		0.9.9
  */
 
 package oscP5;
 
-import java.util.List;
+
+import netP5.Logger;
+import netP5.NetAddress;
 import java.util.Vector;
 
-import netP5.NetAddress;
-
 /**
- * osc properties are used to start oscP5 with more specific settings. osc properties have to be
- * passed to oscP5 in the constructor when starting a new instance of oscP5.
- * 
+ * osc properties are used to start oscP5 with more specific settings.
+ * osc properties have to be passed to oscP5 in the constructor when
+ * starting a new instance of oscP5.
  * @related OscP5
  * @example oscP5properties
  */
 public class OscProperties {
 
-	static public final boolean ON = true;
-	static public final boolean OFF = false;
-	static public final int UDP = 0;
-	static public final int MULTICAST = 1;
-	static public final int TCP = 2;
-	private boolean isLocked = false;
-	private final List< OscEventListener > listeners = new Vector< OscEventListener >( );
-	static public final NetAddress defaultnetaddress = new NetAddress( "" , 0 );
-	private NetAddress _myRemoteAddress = defaultnetaddress;
-	private int _myListeningPort = 0; /* default listening port */
-	private int _myDatagramSize = 1536; /* default datagram buffer size */
-	private String _myDefaultEventMethodName = "oscEvent";
-	private int _myNetworkProtocol = UDP;
-	private String _myHost = "0.0.0.0";
-	private boolean _mySendStatus = false;
-	private boolean _mySRSP = OFF; // (S)end (R)eceive (S)ame (P)ort
+  public static final boolean ON = true;
 
-	public OscProperties( ) {
-	}
+  public static final boolean OFF = false;
 
-	public OscProperties( final NetAddress theNetAddress ) {
-		_myRemoteAddress = theNetAddress;
-	}
+  /**
+   * @related setNetworkProtocol ( )
+   */
+  public static final int UDP = 0;
 
-	public OscProperties( int theReceiveAtPort ) {
-		_myListeningPort = theReceiveAtPort;
-	}
+  /**
+   * @related setNetworkProtocol ( )
+   */
+  public static final int MULTICAST = 1;
 
-	public OscProperties( OscEventListener theParent ) {
-		listeners.add( theParent );
-	}
 
-	public List< OscEventListener > listeners( ) {
-		return listeners;
-	}
+  /**
+   * @related setNetworkProtocol ( )
+   */
+  public static final int TCP = 2;
 
-	public boolean sendStatus( ) {
-		return _mySendStatus;
-	}
 
-	public OscProperties setRemoteAddress( final String theHostAddress , final int thePort ) {
-		setRemoteAddress( new NetAddress( theHostAddress , thePort ) );
-		return this;
-	}
+  protected static final String[] _myProtocols = {"udp", "tcp", "multicast"};
 
-	public OscProperties setRemoteAddress( NetAddress theNetAddress ) {
-		_myRemoteAddress = theNetAddress;
-		_mySendStatus = _myRemoteAddress.isvalid( );
-		return this;
-	}
+  protected boolean isLocked = false;
 
-	public OscProperties setListeningPort( final int thePort ) {
-		_myListeningPort = thePort;
-		return this;
-	}
+  protected final Vector<OscEventListener> listeners;
 
-	public OscProperties setPort( final int thePort ) {
-		return setListeningPort( thePort );
-	}
+  private NetAddress _myRemoteAddress = new NetAddress("", 0);
 
-	public OscProperties setDatagramSize( final int theSize ) {
-		if ( !isLocked ) {
-			_myDatagramSize = theSize;
-		} else {
-			OscP5.LOGGER.warning( "datagram size can only be set before initializing oscP5\ncurrent datagram size is " + _myDatagramSize + ", use OscProperties.setDatagramSize( int )." );
-		}
-		return this;
-	}
+  private int _myListeningPort = 0;
 
-	/**
-	 * set the name of the default event method. the event method is the method to which incoming
-	 * osc messages are forwarded. the default name for the event method is "oscEvent"
-	 */
-	public OscProperties setEventMethod( final String theEventMethod ) {
-		_myDefaultEventMethodName = theEventMethod;
-		return this;
-	}
+  private int _myDatagramSize = 1536; // common MTU
 
-	/**
-	 * set the network protocol over which osc messages are transmitted. options are
-	 * OscProperties.UDP and OscProperties.MULTICAST the network protocol can only be set before
-	 * initializing oscP5. TODO
-	 */
-	public OscProperties setNetworkProtocol( final int theProtocol ) {
-		if ( !isLocked ) {
-			if ( theProtocol > 2 ) {
-				OscP5.LOGGER.warning( "OscProperties.setNetworkProtocol, not in the range of supported Network protocols. the network protocol defaults to UDP" );
-			} else {
-				_myNetworkProtocol = theProtocol;
-			}
-		} else {
-			OscP5.LOGGER.warning( "OscProperties.setNetworkProtocol, network protocol can only be set before initializing oscP5." );
-		}
-		return this;
-	}
+  protected String _myDefaultEventMethodName = "oscEvent";
 
-	public OscProperties setHost( String theHost ) {
-		_myHost = theHost;
-		return this;
-	}
+  private int _myNetworkProtocol = UDP;
 
-	public int listeningPort( ) {
-		return _myListeningPort;
-	}
+  private boolean _mySendStatus = false;
 
-	public NetAddress remoteAddress( ) {
-		return _myRemoteAddress;
-	}
+  private boolean _mySRSP = OFF; // (S)end (R)eceive (S)ame (P)ort
 
-	public String host( ) {
-		return _myHost;
-	}
+  public OscProperties(OscEventListener theParent) {
+    this();
+    listeners.add(theParent);
+  }
 
-	public int datagramSize( ) {
-		return _myDatagramSize;
-	}
 
-	public String eventMethod( ) {
-		return _myDefaultEventMethodName;
-	}
 
-	/**
-	 * returns the network protocol being used to transmit osc packets. returns an int. 0 (UDP), 1
-	 * (MULTICAST), 2 (TCP)
-	 */
-	public int networkProtocol( ) {
-		return _myNetworkProtocol;
-	}
+  /**
+   * create a new OscProperties Object.
+   */
+  public OscProperties() {
+    listeners = new Vector<OscEventListener>();
+  }
 
-	/**
-	 * prints out the current osc properties settings.
-	 * 
-	 * @return String
-	 * @related OscProperties
-	 */
-	public String toString( ) {
-		String s = "\nnetwork protocol: " + ( ( new String[] { "udp" , "tcp" , "multicast" } )[ _myNetworkProtocol ] ) + "\n";
-		s += "host: " + ( ( _myRemoteAddress.address( ) != null ) ? _myRemoteAddress.address( ) : "host address not set." ) + "\n";
-		s += "sendToPort: " + _myRemoteAddress.port( ) + "\n";
-		s += "receiveAtPort: " + listeningPort( ) + "\n";
-		s += "datagramSize: " + _myDatagramSize + "\n";
-		s += "event Method: " + _myDefaultEventMethodName + "\n";
-		s += "(S)end(R)eceive(S)ame(P)ort: " + this._mySRSP + "\n\n";
-		return s;
-	}
 
-	/* Deprecated */
 
-	/**
-	 * SRSP stand for Send and Receive on Same Port. by default osc packets are not received and
-	 * sent by the same port. if you need to send and receive on the same port call
-	 * setSRSP(OscProperties.ON)
-	 */
-	@Deprecated public void setSRSP( final boolean theFlag ) {
-		_mySRSP = theFlag;
-	}
+  /**
+   *
+   * @return OscEventListener
+   * @invisible
+   */
+  public Vector<OscEventListener> listeners() {
+    return listeners;
+  }
 
-	/**
-	 * you can send and receive at the same port while on a udp con
-	 */
-	@Deprecated public boolean srsp( ) {
-		return _mySRSP;
-	}
+
+
+  /**
+   *
+   * @return boolean
+   * @related OscProperties
+   * @invisible
+   */
+  public boolean sendStatus() {
+    return _mySendStatus;
+  }
+
+
+
+  /**
+   * set the remote host address. set ip address and port of the host
+   * message should be sent to.
+   * @param theHostAddress String
+   * @param thePort int
+   * @related OscProperties
+   */
+  public void setRemoteAddress(final String theHostAddress, final int thePort) {
+    _myRemoteAddress = new NetAddress(theHostAddress, thePort);
+    _mySendStatus = _myRemoteAddress.isvalid();
+  }
+
+  /**
+   * set the remote host address. set ip address and port of the host
+   * message should be sent to.
+   * @param theNetAddress NetAddress
+   * @related OscProperties
+   */
+  public void setRemoteAddress(NetAddress theNetAddress) {
+    _myRemoteAddress = theNetAddress;
+    _mySendStatus = _myRemoteAddress.isvalid();
+  }
+
+
+  /**
+   *set port number you are listening for incoming osc packets.
+   * @param thePort int
+   * @related OscProperties
+   */
+  public void setListeningPort(final int thePort) {
+    _myListeningPort = thePort;
+  }
+
+
+
+  /**
+   * set the size of the datagrampacket byte buffer.
+   * the default size is 1536 bytes.
+   * @param theSize int
+   * @related OscProperties
+   */
+  public void setDatagramSize(final int theSize) {
+    if (!isLocked) {
+      _myDatagramSize = theSize;
+    }
+    else {
+      Logger.printWarning("OscProperties.setDatagramSize",
+                          "datagram size can only be set before initializing oscP5\ncurrent datagram size is "
+                          + _myDatagramSize);
+    }
+  }
+
+
+
+  /**
+   * set the name of the default event method.
+   * the event method is the method to which incoming osc messages
+   * are forwarded. the default name for the event method is
+   * "oscEvent"
+   * @param theEventMethod String
+   * @related OscProperties
+   */
+  public void setEventMethod(final String theEventMethod) {
+    _myDefaultEventMethodName = theEventMethod;
+  }
+
+
+
+  /**
+   * set the network protocol over which osc messages are transmitted.
+   * options are OscProperties.UDP and OscProperties.MULTICAST
+   * the network protocol can only be set before initializing
+   * oscP5.
+   * @param theProtocol int
+   * @related OscProperties
+   * @related UDP
+   * @related TCP
+   * @related MULTICAST
+   * @related networkProtocol ( )
+   */
+  public void setNetworkProtocol(final int theProtocol) {
+    if (!isLocked) {
+      if (theProtocol > 2) {
+        Logger.printWarning("OscProperties.setNetworkProtocol",
+                            "not in the range of supported Network protocols. the network protocol defaults to UDP");
+      }
+      else {
+        _myNetworkProtocol = theProtocol;
+      }
+    }
+    else {
+      Logger.printWarning("OscProperties.setNetworkProtocol",
+                          "network protocol can only be set before initializing oscP5.");
+    }
+  }
+
+
+
+  /**
+   * SRSP stand for Send and Receive on Same Port.
+   * by default osc packets are not received and sent by the same port.
+   * if you need to send and receive on the same port call
+   * setSRSP(OscProperties.ON)
+   * @param theFlag boolean
+   * @related OscProperties
+   */
+  public void setSRSP(final boolean theFlag) {
+    _mySRSP = theFlag;
+  }
+
+
+
+  /**
+   * you can send and receive at the same port while on a udp con
+   * @return boolean
+   * @related OscProperties
+   */
+  public boolean srsp() {
+    return _mySRSP;
+  }
+
+
+
+  /**
+   * returns the port number currently used to receive osc packets.
+   * @return int
+   * @related OscProperties
+   */
+  public int listeningPort() {
+    return _myListeningPort;
+  }
+
+
+
+  /**
+   * returns a NetAddress of the remote host you are sending
+   * osc packets to. by default this is null.
+   * @return NetAddress
+   * @related OscProperties
+   */
+  public NetAddress remoteAddress() {
+    return _myRemoteAddress;
+  }
+
+
+
+  /**
+   * returns the current size of the datagram bytebuffer.
+   * @return int
+   * @related OscProperties
+   */
+  public int datagramSize() {
+    return _myDatagramSize;
+  }
+
+
+
+  /**
+   *
+   * @return String
+   * @related OscProperties
+   */
+  public String eventMethod() {
+    return _myDefaultEventMethodName;
+  }
+
+
+
+  /**
+   * returns the network protocol being used to transmit osc packets. returns an int.
+   * 0 (UDP), 1 (MULTICAST), 2 (TCP)
+   * @return int
+   * @related OscProperties
+   */
+  public int networkProtocol() {
+    return _myNetworkProtocol;
+  }
+
+
+
+  /**
+   * prints out the current osc properties settings.
+   * @return String
+   * @related OscProperties
+   */
+  public String toString() {
+    String s = "\nnetwork protocol: " + (_myProtocols[_myNetworkProtocol])
+        + "\n";
+    s += "host: " + ((_myRemoteAddress.address()!=null) ? _myRemoteAddress.address():"host address not set.") + "\n";
+    s += "sendToPort: " + _myRemoteAddress.port() + "\n";
+    s += "receiveAtPort: " + listeningPort() + "\n";
+    s += "datagramSize: " + _myDatagramSize + "\n";
+    s += "event Method: " + _myDefaultEventMethodName + "\n";
+    s += "(S)end(R)eceive(S)ame(P)ort: " + this._mySRSP + "\n\n";
+    return s;
+  }
 
 }

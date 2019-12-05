@@ -1,5 +1,5 @@
 /**
- * An OSC (Open Sound Control) library for processing.
+ * A network library for processing which supports UDP, TCP and Multicast.
  *
  * (c) 2004-2012
  *
@@ -23,15 +23,19 @@
  * @version		0.9.9
  */
 
-package oscP5;
+package netP5;
+
+import java.net.DatagramPacket;
 
 /**
- * 
  * @invisible
+ * @author andreas schlegel
  */
-public interface OscEventListener {
-
-	public void oscEvent(OscMessage theMessage);
-
-	public void oscStatus(OscStatus theStatus);
+public interface UdpPacketListener {
+	/**
+	 *
+	 * @param theDatagramPacket
+	 *            DatagramPacket
+	 */
+	public void process(DatagramPacket theDatagramPacket, int thePort);
 }
