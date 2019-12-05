@@ -11,3 +11,6 @@ NOTES
 bin/
 reference/
 materials/
+
+.gradle/
+build/
