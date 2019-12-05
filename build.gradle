@@ -19,4 +19,4 @@ dependencies {
 }
 
 group = 'oscP5'
-version = '2.0.4'
+version = '0.9.9'
